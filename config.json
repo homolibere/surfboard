@@ -1,0 +1,55 @@
+{
+  "endpoints": [
+    {
+      "path": "/api/users",
+      "method": "GET",
+      "backend": "https://jsonplaceholder.typicode.com/users",
+      "timeout": 5000,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "query_params": {},
+      "has_path_params": false
+    },
+    {
+      "path": "/api/posts",
+      "method": "GET",
+      "backend": "https://jsonplaceholder.typicode.com/posts",
+      "timeout": 5000,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "query_params": {},
+      "has_path_params": false
+    },
+    {
+      "path": "/api/users/:id",
+      "method": "GET",
+      "backend": "https://jsonplaceholder.typicode.com/users/:id",
+      "timeout": 5000,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "query_params": {},
+      "has_path_params": true
+    },
+    {
+      "path": "/api/posts/:id/comments",
+      "method": "GET",
+      "backend": "https://jsonplaceholder.typicode.com/posts/:id/comments",
+      "timeout": 5000,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "query_params": {},
+      "has_path_params": true
+    }
+  ],
+  "port": 9080,
+  "telemetry": {
+    "enabled": true,
+    "metrics_url": "http://localhost:4318/v1/metrics",
+    "service_name": "surfboard-gateway",
+    "export_timeout": 10000
+  }
+}
