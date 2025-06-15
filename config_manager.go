@@ -21,7 +21,9 @@ func (cm *ConfigManager) LoadFromFile(filePath string) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("failed to open config file: %w", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	// Parse the JSON configuration
 	var config Config

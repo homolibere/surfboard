@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -150,12 +150,12 @@ func LogRequest(r *http.Request, debug bool) {
 
 		// Log request body if present
 		if r.Body != nil {
-			bodyBytes, err := ioutil.ReadAll(r.Body)
+			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				entry.Error = fmt.Sprintf("Error reading request body: %v", err)
 			} else {
 				// Restore the body for further processing
-				r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+				r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 				// Log the body if not empty
 				if len(bodyBytes) > 0 {

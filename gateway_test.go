@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -61,7 +62,7 @@ func TestGatewayRegisterEndpoints(t *testing.T) {
 
 // TestGatewayRegisterHealthCheck tests the RegisterHealthCheck method of the Gateway class
 func TestGatewayRegisterHealthCheck(t *testing.T) {
-	// Create a new gateway with empty configuration
+	// Create a new gateway with an empty configuration
 	gateway := NewGateway(Config{}, nil)
 
 	// Register health check endpoint
@@ -108,7 +109,7 @@ func TestGatewayStart(t *testing.T) {
 	// Start the gateway in a goroutine
 	go func() {
 		err := gateway.Start()
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			t.Errorf("gateway.Start() error = %v", err)
 		}
 	}()
@@ -181,7 +182,7 @@ func TestGatewayAddCallbacks(t *testing.T) {
 	}
 
 	// We can't easily check if the callbacks were executed because the pre-backend callback
-	// modifies the request that's sent to the backend, and the post-backend callback modifies
+	// modifies the request sent to the backend, and the post-backend callback modifies
 	// the response from the backend before it's sent to the client. In a more comprehensive test,
 	// we would need to mock the proxy and verify that the callbacks are called.
 }
@@ -268,6 +269,6 @@ func TestGatewayRegisterCallbacks(t *testing.T) {
 	}
 
 	// We can't easily check if the callbacks were executed because they modify the request/response
-	// that's sent to/from the backend. In a more comprehensive test, we would need to mock the proxy
+	// sent to/from the backend. In a more comprehensive test, we would need to mock the proxy
 	// and verify that the callbacks are called for all endpoints.
 }
