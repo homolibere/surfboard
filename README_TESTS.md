@@ -23,14 +23,14 @@ Note: The tests use both compatibility functions that maintain the original API 
 To run all tests:
 
 ```bash
-go test -v
+cd src && go test -v
 ```
 
 To run a specific test:
 
 ```bash
-go test -v -run TestExtractPathParams
-go test -v -run TestProxyHandler
+cd src && go test -v -run TestExtractPathParams
+cd src && go test -v -run TestProxyHandler
 ```
 
 ## Test Details

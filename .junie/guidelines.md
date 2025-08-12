@@ -10,7 +10,7 @@ SurfBoard is a Go application that requires Go 1.24 or later. To build the proje
 
 ```bash
 # Build the binary
-go build -o SurfBoard
+cd src && go build -o ../SurfBoard
 
 # Run the binary
 ./SurfBoard
@@ -100,19 +100,19 @@ SurfBoard uses a JSON configuration file to define endpoints and other settings.
 To run all tests:
 
 ```bash
-go test -v
+cd src && go test -v
 ```
 
 To run a specific test:
 
 ```bash
-go test -v -run TestName
+cd src && go test -v -run TestName
 ```
 
 For example:
 
 ```bash
-go test -v -run TestLogInfo
+cd src && go test -v -run TestLogInfo
 ```
 
 ### Adding Tests

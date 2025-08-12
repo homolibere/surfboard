@@ -26,7 +26,7 @@ Or clone the repository:
 ```bash
 git clone https://github.com/homolibere/SurfBoard.git
 cd SurfBoard
-go build
+cd src && go build -o ../SurfBoard
 ```
 
 ### Running the API Gateway
@@ -256,7 +256,7 @@ For detailed information about the tests, see [README_TESTS.md](README_TESTS.md)
 To run the tests:
 
 ```bash
-go test -v
+cd src && go test -v
 ```
 
 ## License
