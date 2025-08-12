@@ -1,18 +1,40 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 // TestProxyHandlerDirectly tests the Handler method of the Proxy class directly
 func TestProxyHandlerDirectly(t *testing.T) {
-	// Create a test endpoint
+	// Create a mock backend server
+	mockBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify that headers were forwarded correctly
+		if r.Header.Get("X-Test-Header") != "test-value" {
+			t.Errorf("Expected X-Test-Header to be 'test-value', got '%s'", r.Header.Get("X-Test-Header"))
+		}
+
+		// Verify that query parameters were forwarded correctly
+		if r.URL.Query().Get("param1") != "value1" {
+			t.Errorf("Expected query param 'param1' to be 'value1', got '%s'", r.URL.Query().Get("param1"))
+		}
+
+		// Send a response
+		_, err := fmt.Fprintln(w, "Hello from mock backend")
+		if err != nil {
+			t.Fatalf("Failed to create mock backend: %v", err)
+		}
+	}))
+	defer mockBackend.Close()
+
+	// Create a test endpoint with the mock backend URL
 	endpoint := Endpoint{
 		Path:          "/test",
 		Method:        "GET",
-		Backend:       "https://example.com",
+		Backend:       mockBackend.URL,
 		Timeout:       1000,
 		Headers:       map[string]string{"X-Test-Header": "test-value"},
 		QueryParams:   map[string]string{"param1": "value1"},
@@ -37,8 +59,16 @@ func TestProxyHandlerDirectly(t *testing.T) {
 	// Call the handler
 	handler.ServeHTTP(rr, req)
 
-	// We can't easily check the response because it would make an actual HTTP request
-	// to example.com, but we can at least verify that the handler doesn't panic
+	// Check the response
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check the response body
+	expectedBody := "Hello from mock backend\n"
+	if rr.Body.String() != expectedBody {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	}
 }
 
 // TestProxyHandlerInvalidMethod tests the Handler method with an invalid HTTP method
@@ -117,11 +147,34 @@ func TestProxyHandlerInvalidBackendURL(t *testing.T) {
 
 // TestProxyHandlerWithPathParams tests the Handler method with path parameters
 func TestProxyHandlerWithPathParams(t *testing.T) {
+	// Create a mock backend server that verifies path parameters
+	mockBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify that path parameters were correctly extracted and used in the backend URL
+		if !strings.HasSuffix(r.URL.Path, "/123") {
+			t.Errorf("Expected path to end with '/123', got '%s'", r.URL.Path)
+		}
+
+		// Verify that path parameters were also added as query parameters
+		if r.URL.Query().Get("id") != "123" {
+			t.Errorf("Expected query param 'id' to be '123', got '%s'", r.URL.Query().Get("id"))
+		}
+
+		// Send a response with the path parameter
+		// Extract just the ID from the path, regardless of the full path structure
+		pathParts := strings.Split(r.URL.Path, "/")
+		id := pathParts[len(pathParts)-1] // Get the last part of the path
+		_, err := fmt.Fprintf(w, "User ID: %s", id)
+		if err != nil {
+			t.Errorf("Error on logging to console")
+		}
+	}))
+	defer mockBackend.Close()
+
 	// Create a test endpoint with path parameters
 	endpoint := Endpoint{
 		Path:          "/users/:id",
 		Method:        "GET",
-		Backend:       "https://example.com/api/users/:id",
+		Backend:       mockBackend.URL + "/api/users/:id",
 		Timeout:       1000,
 		Headers:       map[string]string{},
 		QueryParams:   map[string]string{},
@@ -146,17 +199,40 @@ func TestProxyHandlerWithPathParams(t *testing.T) {
 	// Call the handler
 	handler.ServeHTTP(rr, req)
 
-	// We can't easily check the response because it would make an actual HTTP request,
-	// but we can at least verify that the handler doesn't panic
+	// Check the response
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check the response body
+	expectedBody := "User ID: 123"
+	if rr.Body.String() != expectedBody {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	}
 }
 
 // TestProxyHandlerWithPreBackendCallback tests the Handler method with a pre-backend callback
 func TestProxyHandlerWithPreBackendCallback(t *testing.T) {
+	// Create a mock backend server that verifies the pre-backend callback was executed
+	mockBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify that the custom header was added by the pre-backend callback
+		if r.Header.Get("X-Pre-Callback") != "executed" {
+			t.Errorf("Expected X-Pre-Callback header to be 'executed', got '%s'", r.Header.Get("X-Pre-Callback"))
+		}
+
+		// Send a response
+		_, err := fmt.Fprintln(w, "Pre-backend callback test successful")
+		if err != nil {
+			t.Errorf("Error on logging to console")
+		}
+	}))
+	defer mockBackend.Close()
+
 	// Create a test endpoint
 	endpoint := Endpoint{
 		Path:          "/test-pre-callback",
 		Method:        "GET",
-		Backend:       "https://example.com",
+		Backend:       mockBackend.URL,
 		Timeout:       1000,
 		Headers:       map[string]string{},
 		QueryParams:   map[string]string{},
@@ -189,20 +265,41 @@ func TestProxyHandlerWithPreBackendCallback(t *testing.T) {
 	// Call the handler
 	handler.ServeHTTP(rr, req)
 
-	// We can't easily check the response because it would make an actual HTTP request,
-	// but we can at least verify that the callback was executed
+	// Verify that the callback was executed
 	if !callbackExecuted {
 		t.Errorf("Pre-backend callback was not executed")
+	}
+
+	// Check the response
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check the response body
+	expectedBody := "Pre-backend callback test successful\n"
+	if rr.Body.String() != expectedBody {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
 	}
 }
 
 // TestProxyHandlerWithPostBackendCallback tests the Handler method with a post-backend callback
 func TestProxyHandlerWithPostBackendCallback(t *testing.T) {
+	// Create a mock backend server
+	mockBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Send a response
+		w.Header().Set("Content-Type", "application/json")
+		_, err := fmt.Fprintln(w, `{"message": "Original response"}`)
+		if err != nil {
+			t.Errorf("Error on logging to console")
+		}
+	}))
+	defer mockBackend.Close()
+
 	// Create a test endpoint
 	endpoint := Endpoint{
 		Path:          "/test-post-callback",
 		Method:        "GET",
-		Backend:       "https://example.com",
+		Backend:       mockBackend.URL,
 		Timeout:       1000,
 		Headers:       map[string]string{},
 		QueryParams:   map[string]string{},
@@ -212,11 +309,12 @@ func TestProxyHandlerWithPostBackendCallback(t *testing.T) {
 	// Create a new proxy
 	proxy := NewProxy(endpoint, false, nil)
 
-	// Add a post-backend callback that modifies the response
-	// Note: This test is limited because we can't easily mock the backend response
-	// in the current test setup. In a real-world scenario, you would use a mock HTTP server.
+	// Add a post-backend callback that just marks it was executed
+	// We're not trying to modify the response since that's difficult to test
+	callbackExecuted := false
 	proxy.AddPostBackendCallback(func(resp *http.Response, req *http.Request) *http.Response {
-		// In a real test, we would modify the response here
+		// Mark the callback as executed
+		callbackExecuted = true
 		return resp
 	})
 
@@ -235,7 +333,20 @@ func TestProxyHandlerWithPostBackendCallback(t *testing.T) {
 	// Call the handler
 	handler.ServeHTTP(rr, req)
 
-	// We can't easily check if the post-backend callback was executed because
-	// it would require making an actual HTTP request and mocking the response,
-	// but we can at least verify that the handler doesn't panic
+	// Verify that the callback was executed
+	if !callbackExecuted {
+		t.Errorf("Post-backend callback was not executed")
+	}
+
+	// Check the response
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check the response body - we expect the original response since we're not modifying it
+	expectedBody := `{"message": "Original response"}
+`
+	if rr.Body.String() != expectedBody {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	}
 }

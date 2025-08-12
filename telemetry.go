@@ -54,6 +54,11 @@ func NewTelemetryManager(config TelemetryConfig) (*TelemetryManager, error) {
 		return nil, fmt.Errorf("failed to parse metrics URL: %w", err)
 	}
 
+	// Validate URL scheme (must be http or https)
+	if metricsURL.Scheme != "http" && metricsURL.Scheme != "https" {
+		return nil, fmt.Errorf("invalid metrics URL scheme: %s (must be http or https)", metricsURL.Scheme)
+	}
+
 	// Extract host and port (without path)
 	endpoint := metricsURL.Host
 
