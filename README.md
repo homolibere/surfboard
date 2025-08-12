@@ -18,13 +18,13 @@ SurfBoard is a lightweight API Gateway inspired by KrakenD. It acts as a proxy b
 ### Installation
 
 ```bash
-go get github.com/yourusername/SurfBoard
+go get github.com/homolibere/surfboard
 ```
 
 Or clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/SurfBoard.git
+git clone https://github.com/homolibere/SurfBoard.git
 cd SurfBoard
 go build
 ```
